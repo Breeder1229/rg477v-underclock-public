@@ -1,0 +1,183 @@
+V1.00 public snapshot (2026-10-17)
+Current release: platform-signed system-UID frontend; no Shizuku is required.
+The v0.5.1 66-class --power-overlay native payload is reused byte-for-byte.
+Earlier mode descriptions below are build history, not current user instructions.
+For installation, recovery and supported environments use docs/INSTALL.ko.md.
+No external keys or vendor APK inputs are included in this source tree.
+
+Portable Control Center patch build
+
+v0.5.1 display-only FPS/W OSD inventory: --power-overlay requires exactly
+66 owned classes (the unchanged v0.5.0 49-class set plus 17 reviewed OSD,
+sensor policy, lifecycle, foreground-present FPS and protocol classes).
+The original default23 / --custom-profiles47 / --boot-restore49 modes remain
+exact and mutually exclusive with this new mode. New classes never enter an
+old mode. The vendor DEX, original two hooks, binary manifest and 1,014 protected
+entries stay byte-identical. Relative to v0.5.0, existing method body changes
+are limited to Runtime.boot, Card.install and Card.Attachment.refresh; all
+profile/clock/fan/thermal methods and MeasuredProfiles stay identical.
+
+FPS reads use existing system UID1000 grants, IBinder.dumpAsync with a bounded
+pipe (no shell, timestats enable/clear, or refresh-rate FPS substitution).
+Exactly one foreground-component SurfaceView(BLAST) is eligible. Present
+timestamps use System.nanoTime, a fresh two-sample baseline, no overflow/gap
+interpolation and no stale last-FPS fallback. OFF closes pipe/worker and UI
+resources. No new service or native manifest permission is introduced.
+The external platform key/certificate inputs remain outside source artifacts.
+
+v0.5.0 bootstrap retry inventory: --boot-restore in this source requires
+exactly 49 owned classes: the prior 47 Custom helpers plus BootRestorePolicy
+and BootRestorePolicy$Actions. Runtime uses this shared dispatcher for bounded
+startup attempts and terminal/cancelled callbacks. Only startup restoration
+retries known transient PowerHAL failures; failed bootstrap preserves the saved
+selection and Custom slots. Explicit Default cancels its epoch. Normal running
+lease renewal retains its existing fail-safe. Older sources retain their own
+23/47-class contracts. The original --custom-profiles mode still requires exactly
+47 classes; --boot-restore is an explicit alternative, never a relaxed allowlist.
+
+2026-10-15 trial build update
+The device's immutable /system Control Center is 1.0.28/code8, not the
+1.0.29/code9 input described below. Never pass that APK to patch_apk.py or
+relax its input hash. The installed v0.2 native APK exactly matches the
+published payload SHA256:
+43b345149548be671b963ff017487a5e8975f2b373a3abb17a5cc6aaa2ce0961
+For this trial, refresh_payload.py replaces only the exclusively owned
+underclock helper DEX in that exact reviewed v0.2 base. It retains the
+existing vendor DEX and the existing two hooks byte-for-byte; it does not
+apply stock hooks again. All non-signature/non-helper entries, including
+the binary manifest, resources, assets and native libraries, remain exact.
+The same external platform certificate and signing tool verification apply.
+The original stock-patching workflow below remains available for its exact
+1.0.29 source input only. Do not use an arbitrary installed APK as a base.
+
+Refresh command (all paths explicit, no device access):
+python integration/control-center/refresh_payload.py \
+  --base-apk /path/to/verified-installed-v02-control-center.apk \
+  --helper-dex /path/to/reviewed/classes.dex \
+  --java /path/to/java \
+  --build-tools /path/to/android-sdk/build-tools/35.0.0 \
+  --signing-key /external/platform.pk8 \
+  --signing-cert /external/platform.x509.pem \
+  --python-deps /path/to/isolated-androguard-4.1.3 \
+  --work-dir /absolute/new-nonexistent-output-directory
+The output directory parent must already exist. It must not contain or
+alias inputs, tools, dependencies or signing files. Outputs are
+control-center-underclock-signed.apk, signature-verification.txt and
+refresh-verification.json. Publication is atomic and never overwrites an
+existing final path. The default refresh requires the exact 23 original
+helper classes. For v0.3.0, add --custom-profiles: this requires exactly the
+47 reviewed Custom helper classes, including the shared editor, validated
+values/commands, transactional slot store, and D8 35.0.0 lambda classes.
+Arbitrary additions remain rejected. Runtime's public static boot(Context)
+and install(View) entrypoints remain required.
+Run tests/test_refresh_payload.py for the host protection-boundary tests.
+
+v0.3.0 helper compilation (JDK21, SDK36, D8/build-tools35.0.0):
+- Compile integration/control-center/*.java AND shared/*.java together with
+  javac -encoding UTF-8 -source 8 -target 8, using SDK36 android.jar as classpath.
+- Jar the resulting com/anbernic/control/underclock class tree, then run
+  com.android.tools.r8.D8 from build-tools35.0.0/lib/d8.jar with --min-api 26
+  and --lib pointing to SDK36 android.jar. Keep its single classes.dex.
+- Run the pinned refresh command above with --custom-profiles.
+- Copy its verified signed APK to app/build/generated/controlcenter/control-center.apk
+  before running assembleDebug, testDebugUnitTest and lintDebug. Do not run
+  clean after copying the payload. Gradle also includes the shared Java sources
+  in the standalone application; no vendor classes enter the frontend DEX.
+- v0.3.0's debug build uses the original application ID to update the user's
+  v0.2 installation. Retain the matching external frontend signing keystore
+  when building an update. A fresh local debug key cannot update an APK signed
+  by another machine. Signing files must never enter source or source ZIPs.
+
+This helper reconstructs a patch of the user's own stock Control Center APK.
+It never connects to a device or installs a package. The release's standalone
+underclock app performs the separately guarded Shizuku installation.
+
+Required inputs, kept outside this repository:
+- Stock com.anbernic.control APK, versionCode 9 / versionName 1.0.29.
+  SHA-256: 37b7cb60e393176c2208d1b9cf1666d14b9df89e9b8367d28eb0f4bddf85877a
+- Java runtime, Android SDK build-tools 35.0.0 (zipalign and apksigner.jar).
+- Official Apktool 3.0.3 fatjar:
+  https://github.com/iBotPeaches/Apktool/releases/tag/v3.0.3
+  https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar
+  SHA-256: dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423
+  The script requires this exact verified tool artifact.
+- Python 3.10 or newer with androguard 4.1.3 and its dependencies installed.
+  Example in a separate environment: python -m pip install androguard==4.1.3
+- Compiled DEX containing the reviewed com.anbernic.control.underclock helper
+  classes. Compile the helper Java against the Android SDK, then run SDK D8
+  with --min-api 34. No original vendor class belongs in this extra DEX.
+- The matching platform test signing key and PEM certificate, supplied as
+  external paths. This firmware's stock certificate is an exact match to the
+  public AOSP platform test certificate. Official test materials are listed at:
+  https://android.googlesource.com/platform/build/+/refs/heads/main/target/product/security/
+  Stock certificate SHA-256:
+  c8a2e9bccf597c2fb6dc66bee293fc13f2fc47ec77bc6b2b0d52c11f51192ab8
+  The build never copies the key into source, output APK, or diagnostics.
+
+Unix-like command, with externally supplied input paths:
+
+python3 integration/control-center/patch_apk.py \
+  --stock-apk /path/to/AnbernicControl-1.0.29.apk \
+  --helper-dex /path/to/helper/classes.dex \
+  --apktool /path/to/apktool_3.0.3.jar \
+  --java /path/to/java \
+  --build-tools /path/to/android-sdk/build-tools/35.0.0 \
+  --signing-key /path/to/external/platform.pk8 \
+  --signing-cert /path/to/external/platform.x509.pem \
+  --work-dir /path/to/external/control-center-build
+
+Windows PowerShell command:
+
+python integration/control-center/patch_apk.py `
+  --stock-apk 'D:/inputs/AnbernicControl-1.0.29.apk' `
+  --helper-dex 'D:/helper-dex/classes.dex' `
+  --apktool 'D:/tools/apktool_3.0.3.jar' `
+  --java 'D:/jdk/bin/java.exe' `
+  --build-tools 'D:/android-sdk/build-tools/35.0.0' `
+  --signing-key 'D:/external-signing/platform.pk8' `
+  --signing-cert 'D:/external-signing/platform.x509.pem' `
+  --work-dir 'D:/control-center-build'
+
+--helper-dex can be repeated if D8 emits multiple helper DEX files.
+--python-deps DIRECTORY is optional for an already installed, isolated Python
+dependency tree. Without it, the normal Python environment must supply
+androguard. --work-dir is optional and defaults to a new OS temporary folder.
+Choose an external work directory so generated APKs, decoded vendor smali,
+original method snapshots and signing diagnostics remain outside tracked source.
+The script does not download a vendor APK, SDK, signing key or tool.
+
+Verified transformation:
+- Apktool decode -r keeps AndroidManifest.xml and resources.arsc raw.
+- The active right-edge performance panel is Lu0/A, a ScrollView created by
+  the Control Center panel factory. Its constructor moves content out of the
+  binding FrameLayout, so the hook passes the live p0 ScrollView directly to
+  UnderclockRuntime.install(View) before the constructor's final return.
+- ControlCenterService.onCreate calls UnderclockRuntime.boot(Context) directly
+  after the original Service.onCreate call. No register allocation is increased.
+- Exactly two stock methods receive one invoke-static each. The other 29,743
+  methods retain identical decoded executable instructions. Original class
+  fields, interfaces, superclasses and method inventories are retained.
+- The ZIP is composed from the original APK: only stock DEX and signing files
+  are replaced, then approved helper DEX is added. All 1,013 original noncode
+  entries, including every resource, asset, native library and the complete
+  manifest, must remain byte-identical.
+- Helper classes must all stay within com.anbernic.control.underclock and
+  must not duplicate original classes.
+- zipalign verifies 16 KiB native alignment. Signing requests v1/v2/v3;
+  apksigner verifies the resulting APK using its v2/v3 schemes on this firmware.
+  Package identity, versionCode 9, system shared UID and the exact
+  original certificate are rechecked. No new exported component or permission
+  is introduced, because the original binary manifest is unchanged.
+
+Outputs in the external work directory:
+- control-center-underclock-signed.apk
+- build-verification.json
+- signature-verification.txt
+
+Never commit vendor APKs, decoded vendor source, generated DEX/classes/APKs,
+SDK/JDK binaries, signing keys, or the build directory. Source review consists
+of this patch helper and the independently written helper Java. The reviewed
+runtime keeps the selected underclock profile when the existing fan mode
+changes; default releases only its own clock requests. Fan behavior belongs
+to the stock operating system. The available clock values are the measured
+Bal catalog; this build does not add a second Turbo profile catalog.

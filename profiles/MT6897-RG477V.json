@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "socModel": "MT6897",
+  "profiles": [
+    {
+      "id": "rg477v_d8300_small_v1_draft",
+      "name": "Small Underclock - RG477V (Draft)",
+      "maxFrequencies": {
+        "0": 2062500,
+        "4": 3000000,
+        "7": 3100000
+      },
+      "gpuMaxFrequencyHz": 1400000000
+    },
+    {
+      "id": "rg477v_d8300_medium_v1_draft",
+      "name": "Medium Underclock - RG477V (Draft)",
+      "maxFrequencies": {
+        "0": 1925000,
+        "4": 2800000,
+        "7": 2900000
+      },
+      "gpuMaxFrequencyHz": 1200000000
+    },
+    {
+      "id": "rg477v_d8300_large_v1_draft",
+      "name": "Large Underclock - RG477V (Draft)",
+      "maxFrequencies": {
+        "0": 1718750,
+        "4": 2500000,
+        "7": 2700000
+      },
+      "gpuMaxFrequencyHz": 1000000000
+    }
+  ]
+}
